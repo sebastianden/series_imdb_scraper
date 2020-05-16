@@ -23,8 +23,10 @@ search_url = "https://www.imdb.com/find?q={0}&ref_=nv_sr_sm".format(inp)
 resp = requests.get(search_url)
 soup = BeautifulSoup(resp.text,features="lxml")
 
-imdbid = soup.find('td',{'class':'result_text'}).find('a',href=True)
-imdbid = str(imdbid)[16:25]
+st = str(soup.find('td',{'class':'result_text'}).find('a',href=True))
+st = st[st.find('tt'):]
+imdbid = st[:st.find('/')]
+
 print('Found IMDb ID:', imdbid)
 
 titles = []
