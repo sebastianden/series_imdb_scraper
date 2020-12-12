@@ -87,6 +87,12 @@ dup = df['Title'].duplicated(keep=False)
 if not df[dup].empty:
     df.loc[dup,"Title"] = df[dup].apply(lambda x: str(x.Title)+' (S'+str(x.Season)+')',axis=1)
     
+# Polynomial regression
+x = [i for i in range(len(ratings))]
+y = ratings
+model = np.poly1d(np.polyfit(x, y, 4))
+line = np.linspace(0, len(ratings)-1, 100*len(ratings))
+    
 # Plot
 plt.figure(figsize=(14,8))
 g = sns.pointplot(x='Title', y='Rating',
@@ -96,6 +102,7 @@ g = sns.pointplot(x='Title', y='Rating',
                 legend=False,
                 palette=sns.color_palette("husl",df['Season'][df.index[-1]]))
 plt.axhline(mean)
+plt.plot(line, model(line),'r')
 plt.annotate("Mean: "+str(round(mean,1)),(1,mean+0.1))
 plt.xticks(rotation=90)
 plt.tight_layout()
