@@ -44,7 +44,7 @@ while len(ratings)==len(titles) :
     resp = requests.get(url)
     soup = BeautifulSoup(resp.text,features="lxml")
     
-    # Get the actual season from soup (to compare with season nmber in loop)
+    # Get the actual season from soup (to compare with season number in loop)
     true_season = soup.find('h3',{'id':'episode_top',  'itemprop':'name'})
     true_season = int(true_season.text[6:])
     if true_season != s:
@@ -63,12 +63,16 @@ while len(ratings)==len(titles) :
         s_data.append(s)
 
     # Concatenate all respective ratings
+    new_ratings = []
     for x in rating_list:
-        #print(x.text)
-        if len(x.text)==3:
-            ratings.append(float(x.text))
+        new_ratings.append(x.text)
+        
+    ratings.extend(new_ratings[::23])
  
-
+# Convert all ratings to float   
+ratings = [float(i) for i in ratings]
+mean = sum(ratings) / len(ratings)
+ 
 # Check if number of ratings and names are the same
 if len(ratings)!=len(titles):
     titles = titles[:len(ratings)]
@@ -81,15 +85,18 @@ df = pd.DataFrame(d)
 # If duplicates in title add season number
 dup = df['Title'].duplicated(keep=False)
 if not df[dup].empty:
-    df['Title'].loc[dup] = df[dup].apply(lambda x: str(x.Title)+' (S'+str(x.Season)+')',axis=1)
+    df.loc[dup,"Title"] = df[dup].apply(lambda x: str(x.Title)+' (S'+str(x.Season)+')',axis=1)
     
 # Plot
 plt.figure(figsize=(14,8))
-g = sns.pointplot(x='Title', y='Rating', 
-                 hue='Season', data=df,
-                 join=True,
-                 legend=False,
-                 palette=sns.color_palette("husl",df['Season'][df.index[-1]]))
+g = sns.pointplot(x='Title', y='Rating',
+		hue='Season', 
+		data=df,
+                join=True,
+                legend=False,
+                palette=sns.color_palette("husl",df['Season'][df.index[-1]]))
+plt.axhline(mean)
+plt.annotate("Mean: "+str(round(mean,1)),(1,mean+0.1))
 plt.xticks(rotation=90)
 plt.tight_layout()
 plt.show()
