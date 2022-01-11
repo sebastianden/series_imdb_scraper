@@ -3,11 +3,13 @@ Command console tool for scraping all individual IMDb scores of all episodes of 
 
 ## Requirements
 ```python
-requests
-numpy
-pandas
-matplotlib
-seaborn
+requests==2.25.1
+numpy==1.20.2
+pandas==1.3.4
+matplotlib==3.3.4
+seaborn==0.11.1
+lxml==4.7.1
+bs4==0.0.1
 ```
 
 ## Usage
