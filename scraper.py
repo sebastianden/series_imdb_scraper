@@ -1,15 +1,17 @@
 # Import necessary libraries
 import logging
-from bs4 import BeautifulSoup
+import argparse
+from utils import timeit
 import requests
+from bs4 import BeautifulSoup
 import numpy as np
 import pandas as pd
-import argparse
 import matplotlib.pyplot as plt
 import seaborn as sns
 sns.set_style('whitegrid')
 
 
+@timeit
 def get_id(inp):
     """
     Find the IMDb ID of the of the series provided as input.
@@ -44,6 +46,7 @@ def get_id(inp):
         logging.error("No valid IMDb ID found")
 
 
+@timeit
 def scrape(imdbid):
     """
     Scrapes IMDb for the series episode rating.
@@ -154,11 +157,16 @@ if __name__ == "__main__":
                         help="Add regression to plot")
     args = parser.parse_args()
 
-    # Get IMDb ID
-    imdbid = get_id(args.inp)
+    try:
+        # Get IMDb ID
+        imdbid = get_id(args.inp)
 
-    # Scrape IMDb
-    df = scrape(imdbid)
+        # Scrape IMDb
+        df = scrape(imdbid)
+    except requests.exceptions.SSLError:
+        logging.error("SSL certificate error")
+    except requests.exceptions.ConnectionError:
+        logging.error("No network connection")
 
     # Plot results
     if args.plot:
