@@ -1,14 +1,10 @@
 # Import necessary libraries
 import logging
 import argparse
+import json
 from utils import timeit
 import requests
-from bs4 import BeautifulSoup
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-sns.set_style('whitegrid')
+from bs4 import BeautifulSoup, SoupStrainer
 
 
 @timeit
@@ -33,12 +29,12 @@ def get_id(inp):
         search_url = "https://www.imdb.com/find?q={0}&ref_=nv_sr_sm".format(inp)
 
         # Scrape search url for the IMDb ID of first search result
+        strainer = SoupStrainer('td', {'class': 'result_text'})
         resp = requests.get(search_url)
-        soup = BeautifulSoup(resp.text, features="lxml")
+        soup = BeautifulSoup(resp.text, features='lxml', parse_only=strainer)
 
-        st = str(soup.find('td', {'class': 'result_text'}).find('a', href=True))
-        st = st[st.find('tt'):]
-        imdbid = st[:st.find('/')]
+        imdbid = soup.find('a', href=True)
+        imdbid = str(imdbid).split("/")[2]
 
         logging.info(f'Found IMDb ID: {imdbid}')
         return imdbid
@@ -61,87 +57,32 @@ def scrape(imdbid):
     df: pandas.DataFrame
         Dataframe with Title, Season and Rating columns
     """
-    titles = []
-    ratings = []
-    s_data = []
-    s = 0
-    true_season = 0
-
-    while len(ratings) == len(titles):
-        # Go to new season
-        s += 1
-
-        url = 'https://www.imdb.com/title/{}/episodes?season={}'.format(imdbid, s)
+    season = 0
+    data = []
+    while True:
+        season += 1
+        url = f'https://www.imdb.com/title/{imdbid}/episodes?season={season}'
 
         resp = requests.get(url)
-        soup = BeautifulSoup(resp.text, features="lxml")
+        soup = BeautifulSoup(resp.text, features='lxml')
 
-        # Get the actual season from soup (to compare with season number in loop)
+        # Get the actual season from soup (to compare with season nmber in loop)
         true_season = soup.find('h3', {'id': 'episode_top', 'itemprop': 'name'})
-        true_season = int(true_season.text[6:])
-        if true_season != s:
+        true_season = int(true_season.text.split()[1])
+        if season != true_season:
             break
 
-        logging.info("Scraping Season {}".format(s))
-
+        logging.info(f"Scraping Season {season}")
         # Get titles from soup
-        title_list = soup.find_all('a', {'itemprop': 'name'})
+        titles = [t.text for t in soup.find_all('a', {'itemprop': 'name'})]
         # Get ratings from soup
-        rating_list = soup.find_all('span', {'class': 'ipl-rating-star__rating'})
+        ratings = [r.text for r in soup.find_all('span', {'class': 'ipl-rating-star__rating'})][::23]
 
-        # Concatenate all titles
-        for x in title_list:
-            titles.append(x.text)
-            s_data.append(s)
+        data.append({"Season": season, "Episodes": [{"Title": t, "Rating": r} for (t, r) in zip(titles, ratings)]})
 
-        # Concatenate all respective ratings
-        new_ratings = []
-        for x in rating_list:
-            new_ratings.append(x.text)
+    logging.info(json.dumps(data))
 
-        ratings.extend(new_ratings[::23])
-
-    # Convert all ratings to float
-    ratings = [float(i) for i in ratings]
-
-    # Check if number of ratings and names are the same
-    if len(ratings) != len(titles):
-        titles = titles[:len(ratings)]
-        s_data = s_data[:len(ratings)]
-
-    # Put everything into pandas dataframe
-    d = {'Title': titles, 'Season': s_data, 'Rating': ratings}
-    df = pd.DataFrame(d)
-
-    # If duplicates in title add season number
-    dup = df['Title'].duplicated(keep=False)
-    if not df[dup].empty:
-        df.loc[dup, "Title"] = df[dup].apply(lambda x: str(x.Title) + ' (S' + str(x.Season) + ')', axis=1)
-
-    return df
-
-
-def plot_results(df, plot_mean=False, plot_reg=False):
-    # Plot
-    plt.figure(figsize=(14, 8))
-    sns.pointplot(x='Title', y='Rating', hue='Season', data=df, join=True, legend=False,
-                  palette=sns.color_palette("husl", df['Season'][df.index[-1]]))
-    if plot_mean:
-        mean = df["Rating"].mean()
-        plt.axhline(mean)
-        plt.annotate("Mean: " + str(round(mean, 1)), (1, mean + 0.1))
-
-    if plot_reg:
-        # Polynomial regression
-        y = df["Rating"].values
-        x = [i for i in range(len(y))]
-        model = np.poly1d(np.polyfit(x, y, 4))
-        line = np.linspace(0, len(y) - 1, 100 * len(y))
-        plt.plot(line, model(line), 'r')
-
-    plt.xticks(rotation=90)
-    plt.tight_layout()
-    plt.show()
+    return data
 
 
 if __name__ == "__main__":
@@ -151,10 +92,6 @@ if __name__ == "__main__":
     # Read in command-line parameters
     parser = argparse.ArgumentParser()
     parser.add_argument("-t", "--title", action="store", required=True, dest="inp", help="Series title")
-    parser.add_argument("-p", "--plot", action="store_true", required=False, dest="plot", help="Make plot")
-    parser.add_argument("-m", "--mean", action="store_true", required=False, dest="plot_mean", help="Add mean to plot")
-    parser.add_argument("-r", "--regression", action="store_true", required=False, dest="plot_reg",
-                        help="Add regression to plot")
     args = parser.parse_args()
 
     try:
@@ -162,12 +99,8 @@ if __name__ == "__main__":
         imdbid = get_id(args.inp)
 
         # Scrape IMDb
-        df = scrape(imdbid)
+        data = scrape(imdbid)
     except requests.exceptions.SSLError:
         logging.error("SSL certificate error")
     except requests.exceptions.ConnectionError:
         logging.error("No network connection")
-
-    # Plot results
-    if args.plot:
-        plot_results(df, args.plot_mean, args.plot_reg)
