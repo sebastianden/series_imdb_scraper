@@ -69,8 +69,9 @@ def scrape(imdbid):
         season += 1
         url = f'https://www.imdb.com/title/{imdbid}/episodes?season={season}'
 
+        strainer = SoupStrainer('div', {'class': 'clear', 'itemscope': ''})
         resp = requests.get(url)
-        soup = BeautifulSoup(resp.text, features='lxml')
+        soup = BeautifulSoup(resp.text, features='lxml', parse_only=strainer)
 
         # Get the actual season from soup (to compare with season nmber in loop)
         true_season = soup.find('h3', {'id': 'episode_top', 'itemprop': 'name'})
@@ -113,7 +114,6 @@ def plot_results(data, plot_mean=False, plot_reg=False):
         table.extend([{"Season": season["Season"], "Title": episode["Title"], "Rating": episode["Rating"]}
                       for episode in season["Episodes"]])
 
-    print(table)
     df = pd.DataFrame(table)
     # Plot
     plt.figure(figsize=(14, 8))
