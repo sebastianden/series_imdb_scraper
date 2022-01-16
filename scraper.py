@@ -12,6 +12,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 sns.set_style('whitegrid')
 
+session = requests.Session()
+
 
 @timeit
 def get_id(inp):
@@ -36,7 +38,7 @@ def get_id(inp):
 
         # Scrape search url for the IMDb ID of first search result
         strainer = SoupStrainer('td', {'class': 'result_text'})
-        resp = requests.get(search_url)
+        resp = session.get(search_url)
         soup = BeautifulSoup(resp.text, features='lxml', parse_only=strainer)
 
         imdbid = soup.find('a', href=True)
@@ -70,7 +72,7 @@ def scrape(imdbid):
         url = f'https://www.imdb.com/title/{imdbid}/episodes?season={season}'
 
         strainer = SoupStrainer('div', {'class': 'clear', 'itemscope': ''})
-        resp = requests.get(url)
+        resp = session.get(url)
         soup = BeautifulSoup(resp.text, features='lxml', parse_only=strainer)
 
         # Get the actual season from soup (to compare with season nmber in loop)
