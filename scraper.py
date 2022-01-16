@@ -63,32 +63,35 @@ def scrape(imdbid):
     df: pandas.DataFrame
         Dataframe with Title, Season and Rating columns
     """
-    season = 0
-    data = []
-    while True:
-        season += 1
-        url = f'https://www.imdb.com/title/{imdbid}/episodes?season={season}'
+    try:
+        season = 0
+        data = []
+        while True:
+            season += 1
+            url = f'https://www.imdb.com/title/{imdbid}/episodes?season={season}'
 
-        strainer = SoupStrainer('div', {'class': 'clear', 'itemscope': ''})
-        resp = session.get(url)
-        soup = BeautifulSoup(resp.text, features='lxml', parse_only=strainer)
+            strainer = SoupStrainer('div', {'class': 'clear', 'itemscope': ''})
+            resp = session.get(url)
+            soup = BeautifulSoup(resp.text, features='lxml', parse_only=strainer)
 
-        # Get the actual season from soup (to compare with season nmber in loop)
-        true_season = soup.find('h3', {'id': 'episode_top', 'itemprop': 'name'})
-        true_season = int(true_season.text.split()[1])
-        if season != true_season:
-            break
+            # Get the actual season from soup (to compare with season nmber in loop)
+            true_season = soup.find('h3', {'id': 'episode_top', 'itemprop': 'name'})
+            true_season = int(true_season.text.split()[1])
+            if season != true_season:
+                break
 
-        logging.info(f"Scraping Season {season}")
-        # Get titles from soup
-        titles = [t.text for t in soup.find_all('a', {'itemprop': 'name'})]
-        # Get ratings from soup
-        ratings = [r.text for r in soup.find_all('span', {'class': 'ipl-rating-star__rating'})][::23]
-        ratings = [float(r) for r in ratings]
+            logging.info(f"Scraping Season {season}")
+            # Get titles from soup
+            titles = [t.text for t in soup.find_all('a', {'itemprop': 'name'})]
+            # Get ratings from soup
+            ratings = [r.text for r in soup.find_all('span', {'class': 'ipl-rating-star__rating'})][::23]
+            ratings = [float(r) for r in ratings]
 
-        data.append({"Season": season, "Episodes": [{"Title": t, "Rating": r} for (t, r) in zip(titles, ratings)]})
+            data.append({"Season": season, "Episodes": [{"Title": t, "Rating": r} for (t, r) in zip(titles, ratings)]})
 
-    logging.info(json.dumps(data))
+        logging.info(json.dumps(data))
+    except AttributeError:
+        logging.error("Found ID does not seem to be from a series")
 
     return data
 
@@ -143,11 +146,12 @@ if __name__ == "__main__":
 
     # Read in command-line parameters
     parser = argparse.ArgumentParser()
-    parser.add_argument("-t", "--title", action="store", required=True, dest="inp", help="Series title")
-    parser.add_argument("-p", "--plot", action="store_true", required=False, dest="plot", help="Make plot")
-    parser.add_argument("-m", "--mean", action="store_true", required=False, dest="plot_mean", help="Add mean to plot")
+    parser.add_argument("-t", "--title", action="store", required=True, dest="inp", help="title of series")
+    parser.add_argument("-p", "--plot", action="store_true", required=False, dest="plot",
+                        help="create plot from results")
+    parser.add_argument("-m", "--mean", action="store_true", required=False, dest="plot_mean", help="add mean to plot")
     parser.add_argument("-r", "--regression", action="store_true", required=False, dest="plot_reg",
-                        help="Add regression to plot")
+                        help="add regression to plot")
     args = parser.parse_args()
 
     session = requests.Session()
