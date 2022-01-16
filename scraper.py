@@ -12,8 +12,6 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 sns.set_style('whitegrid')
 
-session = requests.Session()
-
 
 @timeit
 def get_id(inp):
@@ -151,6 +149,8 @@ if __name__ == "__main__":
     parser.add_argument("-r", "--regression", action="store_true", required=False, dest="plot_reg",
                         help="Add regression to plot")
     args = parser.parse_args()
+
+    session = requests.Session()
 
     try:
         # Get IMDb ID
