@@ -13,11 +13,26 @@ bs4==0.0.1
 ```
 
 ## Usage
-Use the `-t` flag to provide the name of a series. The program is making use of IMDb's search function, so the name doesn't have to be spelled completely correct.
+Add the title of the series as command line argument. The program is making use of IMDb's search function, so the name doesn't have to be spelled completely correct.
+
+Usage:
+```console
+$ python scraper.py -h
+usage: scraper.py [-h] [-p] [-m] [-r] t
+
+positional arguments:
+  t                 title of series
+
+optional arguments:
+  -h, --help        show this help message and exit
+  -p, --plot        create plot from results
+  -m, --mean        add mean to plot
+  -r, --regression  add regression to plot
+```
 
 Example:
 ```console
-$ python scraper.py -t "Game of Thrones"
+$ python scraper.py "Game of Thrones" -p
 ```
 Output:
 ```console

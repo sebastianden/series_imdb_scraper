@@ -14,13 +14,13 @@ sns.set_style('whitegrid')
 
 
 @timeit
-def get_id(inp):
+def get_id(t):
     """
     Find the IMDb ID of the of the series provided as input.
 
     Parameters
     ----------
-    inp: str
+    t: str
         Title of series
 
     Returns
@@ -31,8 +31,8 @@ def get_id(inp):
     try:
         # Get IMDb ID
         # Turn input into IMDb search url
-        inp = inp.replace(' ', '+')
-        search_url = "https://www.imdb.com/find?q={0}&ref_=nv_sr_sm".format(inp)
+        t = t.replace(' ', '+')
+        search_url = "https://www.imdb.com/find?q={0}&ref_=nv_sr_sm".format(t)
 
         # Scrape search url for the IMDb ID of first search result
         strainer = SoupStrainer('td', {'class': 'result_text'})
@@ -89,7 +89,7 @@ def scrape(imdbid):
 
             data.append({"Season": season, "Episodes": [{"Title": t, "Rating": r} for (t, r) in zip(titles, ratings)]})
 
-        logging.info(json.dumps(data))
+        logging.debug(json.dumps(data))
     except AttributeError:
         logging.error("Found ID does not seem to be from a series")
 
@@ -146,7 +146,7 @@ if __name__ == "__main__":
 
     # Read in command-line parameters
     parser = argparse.ArgumentParser()
-    parser.add_argument("-t", "--title", action="store", required=True, dest="inp", help="title of series")
+    parser.add_argument("t", action="store", help="title of series")
     parser.add_argument("-p", "--plot", action="store_true", required=False, dest="plot",
                         help="create plot from results")
     parser.add_argument("-m", "--mean", action="store_true", required=False, dest="plot_mean", help="add mean to plot")
@@ -158,7 +158,7 @@ if __name__ == "__main__":
 
     try:
         # Get IMDb ID
-        imdbid = get_id(args.inp)
+        imdbid = get_id(args.t)
 
         # Scrape IMDb
         data = scrape(imdbid)

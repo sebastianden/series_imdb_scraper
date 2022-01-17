@@ -20,6 +20,6 @@ def timeit(func):
     def wrapped(*args, **kwargs):
         start = time.time()
         result = func(*args, **kwargs)
-        logging.info(f" Execution time of {func.__name__}: {(time.time() - start)*1000:.0f} ms")
+        logging.debug(f" Execution time of {func.__name__}: {(time.time() - start)*1000:.0f} ms")
         return result
     return wrapped
