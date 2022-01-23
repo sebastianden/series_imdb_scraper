@@ -87,9 +87,11 @@ def scrape(imdbid):
             ratings = [r.text for r in soup.find_all('span', {'class': 'ipl-rating-star__rating'})][::23]
             ratings = [float(r) for r in ratings]
 
-            data.append({"Season": season, "Episodes": [{"Title": t, "Rating": r} for (t, r) in zip(titles, ratings)]})
+            if ratings:
+                data.append({"Season": season,
+                             "Episodes": [{"Title": t, "Rating": r} for (t, r) in zip(titles, ratings)]})
 
-        logging.debug(json.dumps(data))
+        logging.info(json.dumps(data))
     except AttributeError:
         logging.error("Found ID does not seem to be from a series")
 
